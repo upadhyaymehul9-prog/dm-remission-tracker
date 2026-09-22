@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Tracker — Type 2 Diabetes Remission Protocol</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0E3E3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal-900:#0E3E3A;
+    --teal-700:#155850;
+    --teal-100:#E3EEEB;
+    --gold-600:#B9822F;
+    --gold-100:#F3E6CE;
+    --paper:#FAF7F1;
+    --paper-line:#DFD8C8;
+    --ink:#26231D;
+    --ink-soft:#5B564C;
+    --red:#A33B2E;
+    --red-bg:#F6E7E3;
+    --green:#3E7A56;
+    --green-bg:#E7F0E9;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:16px;
+    line-height:1.5;
+  }
+  h1,h2,h3{
+    font-family:'IBM Plex Serif',serif;
+    font-weight:600;
+    margin:0 0 .3em;
+    color:var(--teal-900);
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px;}
+  header.top{
+    background:var(--teal-900);
+    color:#fff;
+    padding:28px 0 24px;
+    border-bottom:4px solid var(--gold-600);
+  }
+  header.top .wrap{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;}
+  header.top .brand{font-size:.78rem;letter-spacing:.03em;color:var(--gold-100);text-transform:uppercase;margin-bottom:4px;}
+  header.top h1{color:#fff;font-size:1.7rem;margin:0;}
+  header.top .sub{color:#cfe0dc;font-size:.92rem;margin-top:4px;}
+  nav.tabs{
+    background:var(--teal-700);
+  }
+  nav.tabs .wrap{display:flex;gap:2px;overflow-x:auto;}
+  nav.tabs button{
+    background:none;border:none;color:#dcebe7;
+    font-family:'IBM Plex Sans',sans-serif;font-size:.92rem;font-weight:500;
+    padding:12px 16px;cursor:pointer;white-space:nowrap;
+    border-bottom:3px solid transparent;
+  }
+  nav.tabs button.active{color:#fff;border-bottom-color:var(--gold-600);}
+
+  main{padding:28px 0 80px;}
+  section{display:none;}
+  section.active{display:block;}
+
+  .snapshot{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+    border:1px solid var(--paper-line);border-radius:var(--radius);
+    margin-bottom:28px;background:#fff;
+  }
+  .snapshot .cell{padding:16px 14px;border-right:1px solid var(--paper-line);}
+  .snapshot .cell:last-child{border-right:none;}
+  .snapshot .label{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:4px;}
+  .snapshot .value{font-family:'IBM Plex Serif',serif;font-size:1.5rem;color:var(--teal-900);font-variant-numeric:tabular-nums;}
+  .snapshot .value.empty{color:#b7b0a2;font-size:1rem;}
+  .snapshot .trend{font-size:.78rem;margin-top:2px;}
+  .trend.down{color:var(--green);} .trend.up{color:var(--red);} .trend.flat{color:var(--ink-soft);}
+
+  .panel{
+    border-top:2px solid var(--teal-900);
+    padding-top:14px;margin-bottom:36px;
+  }
+  .panel-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;flex-wrap:wrap;gap:6px;}
+  .panel-head .note{font-size:.85rem;color:var(--ink-soft);}
+
+  .grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;}
+  @media (max-width:760px){.grid2{grid-template-columns:1fr;} .snapshot{grid-template-columns:1fr 1fr;} .snapshot .cell{border-bottom:1px solid var(--paper-line);}}
+
+  label{display:block;font-size:.82rem;font-weight:500;color:var(--ink-soft);margin:12px 0 4px;}
+  label:first-child{margin-top:0;}
+  input,select,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--paper-line);border-radius:var(--radius);
+    font-family:inherit;font-size:.95rem;background:#fff;color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal-700);outline-offset:1px;}
+  textarea{resize:vertical;min-height:64px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  button.primary{
+    margin-top:16px;background:var(--teal-900);color:#fff;border:none;
+    padding:11px 22px;border-radius:var(--radius);font-family:inherit;font-weight:600;font-size:.95rem;cursor:pointer;
+  }
+  button.primary:hover{background:var(--teal-700);}
+  button.ghost{
+    background:none;border:1px solid var(--paper-line);color:var(--ink);
+    padding:8px 14px;border-radius:var(--radius);font-family:inherit;font-size:.85rem;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--teal-700);color:var(--teal-700);}
+  button.danger{border-color:var(--red);color:var(--red);}
+
+  table{width:100%;border-collapse:collapse;font-size:.9rem;}
+  th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);border-bottom:1px solid var(--paper-line);padding:8px 6px;}
+  td{padding:9px 6px;border-bottom:1px solid var(--paper-line);font-variant-numeric:tabular-nums;}
+  tr:last-child td{border-bottom:none;}
+  .empty-state{color:var(--ink-soft);font-size:.9rem;padding:18px 0;border:1px dashed var(--paper-line);text-align:center;border-radius:var(--radius);}
+
+  svg.chart{width:100%;height:220px;display:block;}
+  .chart-legend{display:flex;gap:18px;margin-top:8px;font-size:.82rem;}
+  .chart-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:12px;height:3px;display:inline-block;}
+
+  .review-box{border:1px solid var(--paper-line);border-radius:var(--radius);padding:16px;background:#fff;}
+  .review-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--paper-line);font-size:.92rem;}
+  .review-line:last-of-type{border-bottom:none;}
+  .flag{background:var(--gold-100);border-left:3px solid var(--gold-600);padding:8px 10px;font-size:.85rem;margin-top:10px;border-radius:0 var(--radius) var(--radius) 0;}
+
+  .hba1c-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
+  .hba1c-form > div{flex:1;min-width:120px;}
+
+  .data-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .footer-note{font-size:.82rem;color:var(--ink-soft);margin-top:8px;}
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--teal-900);color:#fff;padding:10px 18px;border-radius:var(--radius);
+    font-size:.88rem;opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:50;
+  }
+  .toast.show{opacity:1;}
+  .stress-scale{display:flex;gap:6px;}
+  .stress-scale button{
+    flex:1;padding:8px 0;border:1px solid var(--paper-line);background:#fff;border-radius:var(--radius);
+    cursor:pointer;font-family:inherit;font-size:.85rem;
+  }
+  .stress-scale button.sel{background:var(--teal-900);color:#fff;border-color:var(--teal-900);}
+
+  .install-banner{
+    display:none;background:var(--gold-100);border-bottom:1px solid var(--gold-600);
+    color:var(--ink);
+  }
+  .install-banner.show{display:block;}
+  .install-banner .wrap{display:flex;justify-content:space-between;align-items:center;padding:10px 0;gap:12px;flex-wrap:wrap;}
+  .install-banner p{margin:0;font-size:.88rem;}
+  .install-banner button.primary{margin-top:0;padding:8px 16px;font-size:.85rem;}
+  .install-banner .dismiss{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:1.1rem;padding:0 4px;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <div class="brand">Type 2 Diabetes Remission Protocol</div>
+      <h1>Your Tracker</h1>
+      <div class="sub">Structured logging, reviewed weekly — not testing for its own sake.</div>
+    </div>
+  </div>
+</header>
+
+<div class="install-banner" id="installBanner">
+  <div class="wrap">
+    <p id="installText">Install this as an app on your phone — it'll work offline and your data stays put.</p>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="primary" id="installBtn" style="display:none;">Install App</button>
+      <button class="dismiss" id="installDismiss" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <div class="wrap">
+    <button data-tab="log" class="active">Log Entry</button>
+    <button data-tab="trends">Trends</button>
+    <button data-tab="hba1c">HbA1c Milestones</button>
+    <button data-tab="review">Weekly Review</button>
+    <button data-tab="data">Data & Backup</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <div class="snapshot" id="snapshot"></div>
+
+  <!-- LOG ENTRY -->
+  <section id="log" class="active">
+    <div class="grid2">
+      <div class="panel" style="border-top:none;padding-top:0;">
+        <div class="panel-head"><h2>Today's Entry</h2></div>
+        <form id="entryForm">
+          <label for="f_date">Date</label>
+          <input type="date" id="f_date" required>
+
+          <div class="row2">
+            <div>
+              <label for="f_fasting">Fasting glucose (mg/dL)</label>
+              <input type="number" id="f_fasting" min="30" max="500" placeholder="e.g. 108">
+            </div>
+            <div>
+              <label for="f_postmeal">Post-meal glucose (mg/dL)</label>
+              <input type="number" id="f_postmeal" min="30" max="600" placeholder="e.g. 145">
+            </div>
+          </div>
+
+          <label for="f_meal">Post-meal reading taken after</label>
+          <select id="f_meal">
+            <option value="">— not applicable —</option>
+            <option>Breakfast</option>
+            <option>Lunch</option>
+            <option>Dinner</option>
+          </select>
+
+          <div class="row2">
+            <div>
+              <label for="f_weight">Weight (kg)</label>
+              <input type="number" id="f_weight" step="0.1" placeholder="optional">
+            </div>
+            <div>
+              <label for="f_sleep">Sleep last night (hours)</label>
+              <input type="number" id="f_sleep" step="0.5" placeholder="optional">
+            </div>
+          </div>
+
+          <label>Stress level today</label>
+          <div class="stress-scale" id="stressScale">
+            <button type="button" data-v="1">1 · Low</button>
+            <button type="button" data-v="2">2</button>
+            <button type="button" data-v="3">3 · Mid</button>
+            <button type="button" data-v="4">4</button>
+            <button type="button" data-v="5">5 · High</button>
+          </div>
+          <input type="hidden" id="f_stress">
+
+          <label for="f_notes">Context notes <span style="font-weight:400;">(illness, travel, a hard week — anything unusual)</span></label>
+          <textarea id="f_notes" placeholder="Optional, but this is what makes an unusual reading make sense later."></textarea>
+
+          <button type="submit" class="primary">Save Entry</button>
+        </form>
+      </div>
+
+      <div class="panel" style="border-top:none;padding-top:0;">
+        <div class="panel-head"><h2>Recent Entries</h2></div>
+        <div id="entryTableWrap"><div class="empty-state">No entries yet. Log your first reading to get started.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRENDS -->
+  <section id="trends">
+    <div class="panel" style="border-top:none;padding-top:0;">
+      <div class="panel-head">
+        <h2>Glucose Trend</h2>
+        <div class="note">Last 8 weeks · look for direction, not single points</div>
+      </div>
+      <svg class="chart" id="chartSvg" viewBox="0 0 900 220" preserveAspectRatio="none"></svg>
+      <div class="chart-legend">
+        <span><i class="swatch" style="background:#155850;"></i> Fasting</span>
+        <span><i class="swatch" style="background:#B9822F;"></i> Post-meal</span>
+      </div>
+      <p class="footer-note">Not enough data yet? This chart fills in as you log entries — aim for 2–3 readings a week, rotating fasting and post-meal, exactly as covered in Module 6.</p>
+    </div>
+  </section>
+
+  <!-- HBA1C -->
+  <section id="hba1c">
+    <div class="panel" style="border-top:none;padding-top:0;">
+      <div class="panel-head">
+        <h2>HbA1c Milestones</h2>
+        <div class="note">Log each lab result as you get it — roughly every 12 weeks</div>
+      </div>
+      <div class="hba1c-form">
+        <div>
+          <label for="h_date">Date</label>
+          <input type="date" id="h_date">
+        </div>
+        <div>
+          <label for="h_value">HbA1c (%)</label>
+          <input type="number" step="0.1" id="h_value" placeholder="e.g. 7.1">
+        </div>
+        <div style="flex:0 0 auto;">
+          <button class="primary" id="addHba1c" style="margin-top:0;">Add Milestone</button>
+        </div>
+      </div>
+      <div id="hba1cTableWrap"><div class="empty-state">No HbA1c results logged yet. Add your Module 1 baseline to start.</div></div>
+    </div>
+  </section>
+
+  <!-- WEEKLY REVIEW -->
+  <section id="review">
+    <div class="panel" style="border-top:none;padding-top:0;">
+      <div class="panel-head">
+        <h2>This Week's Review</h2>
+        <div class="note">Compares your last 7 days to the 7 days before that</div>
+      </div>
+      <div class="review-box" id="reviewBox"></div>
+
+      <div class="panel" style="margin-top:24px;">
+        <div class="panel-head"><h3 style="font-size:1.05rem;">One Specific Action for Next Week</h3></div>
+        <textarea id="actionText" placeholder="Not a vague intention — something concrete. e.g. 'My post-meal readings after dinner have been higher for two weeks running — I'll try eating vegetables and protein before rice at dinner.'"></textarea>
+        <button class="primary" id="saveAction">Save This Week's Action</button>
+        <div id="pastActions" style="margin-top:20px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section id="data">
+    <div class="panel" style="border-top:none;padding-top:0;">
+      <div class="panel-head"><h2>Data & Backup</h2></div>
+      <p class="footer-note">Your data is stored only in this browser, on this device. It does not sync anywhere automatically. Export a backup regularly, especially before clearing your browser data or switching devices.</p>
+      <div class="data-actions">
+        <button class="ghost" id="exportBtn">Export Backup (.json)</button>
+        <label class="ghost" style="display:inline-flex;align-items:center;cursor:pointer;">
+          Import Backup
+          <input type="file" id="importFile" accept=".json" style="display:none;">
+        </label>
+        <button class="ghost danger" id="clearBtn">Clear All Data</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 't2d_tracker_v1';
+
+function loadStore(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return {entries:[], hba1c:[], actions:[]};
+    return JSON.parse(raw);
+  }catch(e){ return {entries:[], hba1c:[], actions:[]}; }
+}
+function saveStore(store){
+  localStorage.setItem(STORE_KEY, JSON.stringify(store));
+}
+let store = loadStore();
+function sortStore(){
+  store.entries.sort((a,b)=> a.date < b.date ? 1 : -1);
+  store.hba1c.sort((a,b)=> a.date < b.date ? 1 : -1);
+}
+sortStore();
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmtDate(d){
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+}
+
+/* ---------- TABS ---------- */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='trends') renderChart();
+    if(btn.dataset.tab==='review') renderReview();
+  });
+});
+
+/* ---------- STRESS SCALE ---------- */
+document.querySelectorAll('#stressScale button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#stressScale button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    document.getElementById('f_stress').value = b.dataset.v;
+  });
+});
+
+/* ---------- ENTRY FORM ---------- */
+document.getElementById('f_date').valueAsDate = new Date();
+
+document.getElementById('entryForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const date = document.getElementById('f_date').value;
+  if(!date){ toast('Please choose a date'); return; }
+  const entry = {
+    id: uid(),
+    date,
+    fasting: document.getElementById('f_fasting').value ? Number(document.getElementById('f_fasting').value) : null,
+    postMeal: document.getElementById('f_postmeal').value ? Number(document.getElementById('f_postmeal').value) : null,
+    mealLabel: document.getElementById('f_meal').value || null,
+    weight: document.getElementById('f_weight').value ? Number(document.getElementById('f_weight').value) : null,
+    sleep: document.getElementById('f_sleep').value ? Number(document.getElementById('f_sleep').value) : null,
+    stress: document.getElementById('f_stress').value ? Number(document.getElementById('f_stress').value) : null,
+    notes: document.getElementById('f_notes').value || ''
+  };
+  if(entry.fasting===null && entry.postMeal===null){
+    toast('Add at least a fasting or post-meal reading');
+    return;
+  }
+  store.entries.push(entry);
+  store.entries.sort((a,b)=> a.date < b.date ? 1 : -1);
+  saveStore(store);
+  e.target.reset();
+  document.getElementById('f_date').valueAsDate = new Date();
+  document.querySelectorAll('#stressScale button').forEach(x=>x.classList.remove('sel'));
+  toast('Entry saved');
+  renderAll();
+});
+
+/* ---------- HBA1C ---------- */
+document.getElementById('addHba1c').addEventListener('click', ()=>{
+  const date = document.getElementById('h_date').value;
+  const value = document.getElementById('h_value').value;
+  if(!date || !value){ toast('Enter both date and value'); return; }
+  store.hba1c.push({id:uid(), date, value:Number(value)});
+  store.hba1c.sort((a,b)=> a.date < b.date ? 1 : -1);
+  saveStore(store);
+  document.getElementById('h_date').value='';
+  document.getElementById('h_value').value='';
+  toast('HbA1c milestone saved');
+  renderAll();
+});
+
+/* ---------- WEEKLY ACTION ---------- */
+function isoWeekKey(d){
+  const dt = new Date(d);
+  dt.setHours(0,0,0,0);
+  dt.setDate(dt.getDate() + 3 - ((dt.getDay()+6)%7));
+  const week1 = new Date(dt.getFullYear(),0,4);
+  const weekNo = 1 + Math.round(((dt - week1) / 86400000 - 3 + ((week1.getDay()+6)%7)) / 7);
+  return dt.getFullYear() + '-W' + String(weekNo).padStart(2,'0');
+}
+document.getElementById('saveAction').addEventListener('click', ()=>{
+  const text = document.getElementById('actionText').value.trim();
+  if(!text){ toast('Write your action first'); return; }
+  const wk = isoWeekKey(new Date());
+  const existing = store.actions.find(a=>a.week===wk);
+  if(existing){ existing.text = text; existing.date = new Date().toISOString().slice(0,10); }
+  else { store.actions.push({id:uid(), week:wk, date:new Date().toISOString().slice(0,10), text}); }
+  saveStore(store);
+  document.getElementById('actionText').value='';
+  toast('This week\'s action saved');
+  renderReview();
+});
+
+/* ---------- DATA MANAGEMENT ---------- */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(store,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 't2d-tracker-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Backup downloaded');
+});
+document.getElementById('importFile').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt=>{
+    try{
+      const imported = JSON.parse(evt.target.result);
+      if(!imported.entries || !imported.hba1c) throw new Error('bad format');
+      store = { entries: imported.entries||[], hba1c: imported.hba1c||[], actions: imported.actions||[] };
+      sortStore();
+      saveStore(store);
+      toast('Backup restored');
+      renderAll();
+    }catch(err){ toast('Could not read that file'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  if(confirm('This deletes all tracker data on this device permanently. Export a backup first if you want to keep it. Continue?')){
+    store = {entries:[], hba1c:[], actions:[]};
+    saveStore(store);
+    toast('All data cleared');
+    renderAll();
+  }
+});
+
+/* ---------- RENDER: SNAPSHOT ---------- */
+function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+
+function renderSnapshot(){
+  const el = document.getElementById('snapshot');
+  const lastHba1c = store.hba1c[0];
+  const recentFasting = store.entries.filter(e=>e.fasting!==null).slice(0,5).map(e=>e.fasting);
+  const recentPost = store.entries.filter(e=>e.postMeal!==null).slice(0,5).map(e=>e.postMeal);
+  const fAvg = avg(recentFasting);
+  const pAvg = avg(recentPost);
+
+  el.innerHTML = `
+    <div class="cell">
+      <div class="label">Latest HbA1c</div>
+      <div class="value ${lastHba1c?'':'empty'}">${lastHba1c ? lastHba1c.value+'%' : 'Not logged'}</div>
+      <div class="trend flat">${lastHba1c ? fmtDate(lastHba1c.date) : ''}</div>
+    </div>
+    <div class="cell">
+      <div class="label">Fasting Avg (last 5)</div>
+      <div class="value ${fAvg?'':'empty'}">${fAvg ? Math.round(fAvg)+' mg/dL' : '—'}</div>
+    </div>
+    <div class="cell">
+      <div class="label">Post-Meal Avg (last 5)</div>
+      <div class="value ${pAvg?'':'empty'}">${pAvg ? Math.round(pAvg)+' mg/dL' : '—'}</div>
+    </div>
+    <div class="cell">
+      <div class="label">Total Entries</div>
+      <div class="value">${store.entries.length}</div>
+    </div>
+  `;
+}
+
+/* ---------- RENDER: ENTRY TABLE ---------- */
+function renderEntryTable(){
+  const wrap = document.getElementById('entryTableWrap');
+  if(!store.entries.length){
+    wrap.innerHTML = '<div class="empty-state">No entries yet. Log your first reading to get started.</div>';
+    return;
+  }
+  const rows = store.entries.slice(0,10).map(e=>`
+    <tr>
+      <td>${fmtDate(e.date)}</td>
+      <td>${e.fasting ?? '—'}</td>
+      <td>${e.postMeal ?? '—'}${e.mealLabel ? ' ('+e.mealLabel+')' : ''}</td>
+      <td>${e.stress ?? '—'}</td>
+      <td><button class="ghost" data-del="${e.id}" style="padding:4px 9px;font-size:.78rem;">Delete</button></td>
+    </tr>`).join('');
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Stress</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  wrap.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      store.entries = store.entries.filter(e=>e.id!==btn.dataset.del);
+      saveStore(store);
+      renderAll();
+    });
+  });
+}
+
+/* ---------- RENDER: HBA1C TABLE ---------- */
+function renderHba1cTable(){
+  const wrap = document.getElementById('hba1cTableWrap');
+  if(!store.hba1c.length){
+    wrap.innerHTML = '<div class="empty-state">No HbA1c results logged yet. Add your Module 1 baseline to start.</div>';
+    return;
+  }
+  const rows = store.hba1c.map((h,i)=>{
+    const prev = store.hba1c[i+1];
+    let delta = '';
+    if(prev){
+      const d = (h.value - prev.value).toFixed(1);
+      delta = `<span class="trend ${d<0?'down':d>0?'up':'flat'}">${d>0?'+':''}${d}</span>`;
+    }
+    return `<tr><td>${fmtDate(h.date)}</td><td>${h.value}%</td><td>${delta}</td>
+      <td><button class="ghost" data-delh="${h.id}" style="padding:4px 9px;font-size:.78rem;">Delete</button></td></tr>`;
+  }).join('');
+  wrap.innerHTML = `<table><thead><tr><th>Date</th><th>HbA1c</th><th>Change</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  wrap.querySelectorAll('[data-delh]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      store.hba1c = store.hba1c.filter(h=>h.id!==btn.dataset.delh);
+      saveStore(store);
+      renderAll();
+    });
+  });
+}
+
+/* ---------- RENDER: CHART ---------- */
+function renderChart(){
+  const svg = document.getElementById('chartSvg');
+  const W=900,H=220,padL=40,padR=10,padT=10,padB=24;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-56);
+  const pts = store.entries.filter(e=> new Date(e.date) >= cutoff).slice().reverse();
+  if(pts.length < 2){
+    svg.innerHTML = `<text x="20" y="110" fill="#8a8477" font-size="14" font-family="IBM Plex Sans, sans-serif">Log at least two entries to see your trend line here.</text>`;
+    return;
+  }
+  const vals = [];
+  pts.forEach(p=>{ if(p.fasting) vals.push(p.fasting); if(p.postMeal) vals.push(p.postMeal); });
+  const min = Math.max(0, Math.min(...vals)-15);
+  const max = Math.max(...vals)+15;
+  const x = i => padL + (i/(pts.length-1)) * (W-padL-padR);
+  const y = v => H-padB - ((v-min)/(max-min)) * (H-padT-padB);
+
+  function pathFor(key){
+    let d=''; let started=false;
+    pts.forEach((p,i)=>{
+      const v = p[key];
+      if(v===null || v===undefined) return;
+      const cmd = started ? 'L' : 'M';
+      d += `${cmd}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
+      started = true;
+    });
+    return d;
+  }
+  function dotsFor(key,color){
+    return pts.map((p,i)=>{
+      const v=p[key];
+      if(v===null||v===undefined) return '';
+      return `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${color}"/>`;
+    }).join('');
+  }
+  const gridY = [];
+  for(let g=0; g<=4; g++){
+    const val = min + (max-min)*g/4;
+    gridY.push(`<line x1="${padL}" x2="${W-padR}" y1="${y(val).toFixed(1)}" y2="${y(val).toFixed(1)}" stroke="#DFD8C8" stroke-width="1"/>
+      <text x="4" y="${(y(val)+4).toFixed(1)}" font-size="10" fill="#8a8477" font-family="IBM Plex Sans, sans-serif">${Math.round(val)}</text>`);
+  }
+  svg.innerHTML = `
+    ${gridY.join('')}
+    <path d="${pathFor('fasting')}" fill="none" stroke="#155850" stroke-width="2"/>
+    <path d="${pathFor('postMeal')}" fill="none" stroke="#B9822F" stroke-width="2"/>
+    ${dotsFor('fasting','#155850')}
+    ${dotsFor('postMeal','#B9822F')}
+  `;
+}
+
+/* ---------- RENDER: WEEKLY REVIEW ---------- */
+function weekBucket(daysAgoStart, daysAgoEnd){
+  const now = new Date();
+  const start = new Date(now); start.setDate(start.getDate()-daysAgoEnd);
+  const end = new Date(now); end.setDate(end.getDate()-daysAgoStart);
+  return store.entries.filter(e=>{
+    const d = new Date(e.date);
+    return d>=start && d<=end;
+  });
+}
+function trendArrow(curr, prev){
+  if(curr===null || prev===null) return {cls:'flat', text:'—'};
+  const diff = curr-prev;
+  if(Math.abs(diff) < 2) return {cls:'flat', text:'Flat'};
+  return diff<0 ? {cls:'down', text:'↓ Trending down'} : {cls:'up', text:'↑ Trending up'};
+}
+function renderReview(){
+  const thisWeek = weekBucket(0,6);
+  const lastWeek = weekBucket(7,13);
+  const fThis = avg(thisWeek.filter(e=>e.fasting).map(e=>e.fasting));
+  const fLast = avg(lastWeek.filter(e=>e.fasting).map(e=>e.fasting));
+  const pThis = avg(thisWeek.filter(e=>e.postMeal).map(e=>e.postMeal));
+  const pLast = avg(lastWeek.filter(e=>e.postMeal).map(e=>e.postMeal));
+  const fTrend = trendArrow(fThis, fLast);
+  const pTrend = trendArrow(pThis, pLast);
+
+  const lowSleepDays = thisWeek.filter(e=>e.sleep!==null && e.sleep<6).length;
+  const highStressDays = thisWeek.filter(e=>e.stress!==null && e.stress>=4).length;
+
+  let flag = '';
+  if(lowSleepDays>=2 || highStressDays>=2){
+    flag = `<div class="flag">This week shows ${lowSleepDays>=2?lowSleepDays+' night(s) under 6 hours sleep':''}${lowSleepDays>=2 && highStressDays>=2?' and ':''}${highStressDays>=2?highStressDays+' day(s) of high stress':''}. Before reading too much into any unusual glucose numbers, check whether this context explains it — exactly the Module 5 connection.</div>`;
+  }
+
+  document.getElementById('reviewBox').innerHTML = `
+    <div class="review-line"><span>Fasting glucose, this week vs last</span><span class="trend ${fTrend.cls}">${fThis?Math.round(fThis)+' mg/dL — ':''}${fTrend.text}</span></div>
+    <div class="review-line"><span>Post-meal glucose, this week vs last</span><span class="trend ${pTrend.cls}">${pThis?Math.round(pThis)+' mg/dL — ':''}${pTrend.text}</span></div>
+    <div class="review-line"><span>Entries logged this week</span><span>${thisWeek.length}</span></div>
+    ${flag}
+  `;
+
+  const pastWrap = document.getElementById('pastActions');
+  if(!store.actions.length){
+    pastWrap.innerHTML = '';
+  } else {
+    const sorted = store.actions.slice().sort((a,b)=> a.date<b.date?1:-1).slice(0,6);
+    pastWrap.innerHTML = '<h3 style="font-size:.95rem;margin-bottom:8px;">Past Weekly Actions</h3>' +
+      sorted.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--paper-line);font-size:.88rem;"><strong>${fmtDate(a.date)}:</strong> ${a.text}</div>`).join('');
+  }
+}
+
+function renderAll(){
+  renderSnapshot();
+  renderEntryTable();
+  renderHba1cTable();
+  renderChart();
+  renderReview();
+}
+renderAll();
+
+/* ---------- PWA: SERVICE WORKER, PERSISTENT STORAGE, INSTALL PROMPT ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+if(navigator.storage && navigator.storage.persist){
+  navigator.storage.persist().then(granted=>{
+    // Browser grants this automatically for installed/bookmarked, engaged-use sites.
+    // No UI needed either way — this just reduces the chance of automatic eviction.
+  });
+}
+
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+const dismissed = localStorage.getItem('t2d_install_dismissed') === '1';
+const banner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+const installText = document.getElementById('installText');
+let deferredPrompt = null;
+
+if(!isStandalone && !dismissed){
+  if(isIOS){
+    installText.textContent = 'Install this as an app: tap the Share icon, then "Add to Home Screen." Your data stays on this phone either way.';
+    banner.classList.add('show');
+  }
+  // Android/Chrome: wait for the real install prompt event before showing the button
+  window.addEventListener('beforeinstallprompt', e=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'inline-block';
+    banner.classList.add('show');
+  });
+}
+installBtn.addEventListener('click', async ()=>{
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.classList.remove('show');
+});
+document.getElementById('installDismiss').addEventListener('click', ()=>{
+  banner.classList.remove('show');
+  localStorage.setItem('t2d_install_dismissed','1');
+});
+</script>
+</body>
+</html>
