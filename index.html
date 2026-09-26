@@ -250,6 +250,22 @@
           </div>
           <input type="hidden" id="f_stress">
 
+          <label for="f_walk">Post-meal walk today <span style="font-weight:400;">(10–15 min, within ~30 min of eating — Module 4)</span></label>
+          <select id="f_walk">
+            <option value="">Not today</option>
+            <option value="Breakfast">Yes — after breakfast</option>
+            <option value="Lunch">Yes — after lunch</option>
+            <option value="Dinner">Yes — after dinner</option>
+            <option value="Multiple">Yes — after more than one meal</option>
+          </select>
+
+          <label>Resistance training today <span style="font-weight:400;">(chair squats, wall push-ups, bands — Module 4)</span></label>
+          <div class="stress-scale" id="resistScale">
+            <button type="button" data-v="1">Yes</button>
+            <button type="button" data-v="0" class="sel">No</button>
+          </div>
+          <input type="hidden" id="f_resist" value="0">
+
           <label for="f_notes">Context notes <span style="font-weight:400;">(illness, travel, a hard week — anything unusual)</span></label>
           <textarea id="f_notes" placeholder="Optional, but this is what makes an unusual reading make sense later."></textarea>
 
@@ -328,6 +344,7 @@
       <div class="panel-head"><h2>Data & Backup</h2></div>
       <p class="footer-note">Your data is stored only in this browser, on this device. It does not sync anywhere automatically. Export a backup regularly, especially before clearing your browser data or switching devices.</p>
       <div class="data-actions">
+        <button class="ghost" id="printBtn">Print Summary for Doctor</button>
         <button class="ghost" id="exportBtn">Export Backup (.json)</button>
         <label class="ghost" style="display:inline-flex;align-items:center;cursor:pointer;">
           Import Backup
@@ -335,6 +352,7 @@
         </label>
         <button class="ghost danger" id="clearBtn">Clear All Data</button>
       </div>
+      <p class="footer-note" style="margin-top:20px;">Questions about this tracker or the course? <a href="mailto:dr.mehul_ku@yahoo.com" style="color:var(--teal-700);">dr.mehul_ku@yahoo.com</a></p>
     </div>
   </section>
 
@@ -395,6 +413,15 @@ document.querySelectorAll('#stressScale button').forEach(b=>{
   });
 });
 
+/* ---------- RESISTANCE TOGGLE ---------- */
+document.querySelectorAll('#resistScale button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#resistScale button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    document.getElementById('f_resist').value = b.dataset.v;
+  });
+});
+
 /* ---------- ENTRY FORM ---------- */
 document.getElementById('f_date').valueAsDate = new Date();
 
@@ -411,6 +438,8 @@ document.getElementById('entryForm').addEventListener('submit', e=>{
     weight: document.getElementById('f_weight').value ? Number(document.getElementById('f_weight').value) : null,
     sleep: document.getElementById('f_sleep').value ? Number(document.getElementById('f_sleep').value) : null,
     stress: document.getElementById('f_stress').value ? Number(document.getElementById('f_stress').value) : null,
+    walk: document.getElementById('f_walk').value || null,
+    resistance: document.getElementById('f_resist').value === '1',
     notes: document.getElementById('f_notes').value || ''
   };
   if(entry.fasting===null && entry.postMeal===null){
@@ -423,6 +452,9 @@ document.getElementById('entryForm').addEventListener('submit', e=>{
   e.target.reset();
   document.getElementById('f_date').valueAsDate = new Date();
   document.querySelectorAll('#stressScale button').forEach(x=>x.classList.remove('sel'));
+  document.querySelectorAll('#resistScale button').forEach(x=>x.classList.remove('sel'));
+  document.querySelector('#resistScale button[data-v="0"]').classList.add('sel');
+  document.getElementById('f_resist').value = '0';
   toast('Entry saved');
   renderAll();
 });
@@ -464,6 +496,63 @@ document.getElementById('saveAction').addEventListener('click', ()=>{
 });
 
 /* ---------- DATA MANAGEMENT ---------- */
+document.getElementById('printBtn').addEventListener('click', ()=>{
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-28);
+  const recent = store.entries.filter(e=> new Date(e.date) >= cutoff);
+  const fVals = recent.filter(e=>e.fasting!==null).map(e=>e.fasting);
+  const pVals = recent.filter(e=>e.postMeal!==null).map(e=>e.postMeal);
+  const walkDays = recent.filter(e=>e.walk).length;
+  const resistDays = recent.filter(e=>e.resistance).length;
+  const lastHba1c = store.hba1c[0];
+  const firstHba1c = store.hba1c[store.hba1c.length-1];
+
+  const rows = store.entries.slice(0,28).map(e=>`
+    <tr>
+      <td>${fmtDate(e.date)}</td>
+      <td>${e.fasting ?? '—'}</td>
+      <td>${e.postMeal ?? '—'}${e.mealLabel?' ('+e.mealLabel+')':''}</td>
+      <td>${e.weight ?? '—'}</td>
+      <td>${e.sleep ?? '—'}</td>
+      <td>${e.stress ?? '—'}</td>
+      <td>${e.walk ? 'Yes ('+e.walk+')' : '—'}</td>
+      <td>${e.resistance ? 'Yes' : '—'}</td>
+      <td>${e.notes || ''}</td>
+    </tr>`).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>Diabetes Tracker Summary</title>
+    <style>
+      body{font-family:Arial,sans-serif;color:#26231D;padding:24px;max-width:900px;margin:0 auto;}
+      h1{font-size:1.3rem;margin-bottom:2px;} h2{font-size:1rem;margin-top:24px;}
+      .meta{color:#5B564C;font-size:.85rem;margin-bottom:16px;}
+      table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px;}
+      th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;}
+      th{background:#f0ede6;}
+      .stats{display:flex;gap:24px;flex-wrap:wrap;margin:10px 0 18px;}
+      .stat{border:1px solid #ccc;border-radius:4px;padding:8px 14px;}
+      .stat b{display:block;font-size:1.1rem;}
+      @media print{ body{padding:8px;} }
+    </style></head><body>
+    <h1>Type 2 Diabetes Remission Protocol — Tracker Summary</h1>
+    <div class="meta">Generated ${fmtDate(new Date().toISOString().slice(0,10))} · Bring this to your doctor's appointment</div>
+    <div class="stats">
+      <div class="stat"><span>Latest HbA1c</span><b>${lastHba1c?lastHba1c.value+'% ('+fmtDate(lastHba1c.date)+')':'Not logged'}</b></div>
+      <div class="stat"><span>Baseline HbA1c</span><b>${firstHba1c?firstHba1c.value+'% ('+fmtDate(firstHba1c.date)+')':'—'}</b></div>
+      <div class="stat"><span>Fasting avg (28d)</span><b>${fVals.length?Math.round(avg(fVals))+' mg/dL':'—'}</b></div>
+      <div class="stat"><span>Post-meal avg (28d)</span><b>${pVals.length?Math.round(avg(pVals))+' mg/dL':'—'}</b></div>
+      <div class="stat"><span>Post-meal walks (28d)</span><b>${walkDays} day(s)</b></div>
+      <div class="stat"><span>Resistance sessions (28d)</span><b>${resistDays}</b></div>
+    </div>
+    <h2>Entry Log (most recent ${Math.min(store.entries.length,28)})</h2>
+    <table><thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Weight</th><th>Sleep</th><th>Stress</th><th>Walk</th><th>Resistance</th><th>Notes</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="9">No entries yet.</td></tr>'}</tbody></table>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(), 300);
+});
+
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const blob = new Blob([JSON.stringify(store,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -546,11 +635,12 @@ function renderEntryTable(){
       <td>${e.fasting ?? '—'}</td>
       <td>${e.postMeal ?? '—'}${e.mealLabel ? ' ('+e.mealLabel+')' : ''}</td>
       <td>${e.stress ?? '—'}</td>
+      <td title="Post-meal walk / resistance training">${e.walk?'🚶':'—'} ${e.resistance?'💪':''}</td>
       <td><button class="ghost" data-del="${e.id}" style="padding:4px 9px;font-size:.78rem;">Delete</button></td>
     </tr>`).join('');
   wrap.innerHTML = `
     <table>
-      <thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Stress</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Stress</th><th>Activity</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   wrap.querySelectorAll('[data-del]').forEach(btn=>{
@@ -667,16 +757,23 @@ function renderReview(){
 
   const lowSleepDays = thisWeek.filter(e=>e.sleep!==null && e.sleep<6).length;
   const highStressDays = thisWeek.filter(e=>e.stress!==null && e.stress>=4).length;
+  const walkDays = thisWeek.filter(e=>e.walk).length;
+  const resistDays = thisWeek.filter(e=>e.resistance).length;
 
   let flag = '';
   if(lowSleepDays>=2 || highStressDays>=2){
-    flag = `<div class="flag">This week shows ${lowSleepDays>=2?lowSleepDays+' night(s) under 6 hours sleep':''}${lowSleepDays>=2 && highStressDays>=2?' and ':''}${highStressDays>=2?highStressDays+' day(s) of high stress':''}. Before reading too much into any unusual glucose numbers, check whether this context explains it — exactly the Module 5 connection.</div>`;
+    flag += `<div class="flag">This week shows ${lowSleepDays>=2?lowSleepDays+' night(s) under 6 hours sleep':''}${lowSleepDays>=2 && highStressDays>=2?' and ':''}${highStressDays>=2?highStressDays+' day(s) of high stress':''}. Before reading too much into any unusual glucose numbers, check whether this context explains it — exactly the Module 5 connection.</div>`;
+  }
+  if(thisWeek.length>=3 && walkDays<=1){
+    flag += `<div class="flag">Post-meal walks logged only ${walkDays} day(s) this week. This is the single highest-leverage habit in the course (Module 4) — if your post-meal readings ran high, this is the first thing to fix before anything else.</div>`;
   }
 
   document.getElementById('reviewBox').innerHTML = `
     <div class="review-line"><span>Fasting glucose, this week vs last</span><span class="trend ${fTrend.cls}">${fThis?Math.round(fThis)+' mg/dL — ':''}${fTrend.text}</span></div>
     <div class="review-line"><span>Post-meal glucose, this week vs last</span><span class="trend ${pTrend.cls}">${pThis?Math.round(pThis)+' mg/dL — ':''}${pTrend.text}</span></div>
     <div class="review-line"><span>Entries logged this week</span><span>${thisWeek.length}</span></div>
+    <div class="review-line"><span>Post-meal walks this week</span><span>${walkDays} day(s)</span></div>
+    <div class="review-line"><span>Resistance training this week</span><span>${resistDays} session(s)</span></div>
     ${flag}
   `;
 
