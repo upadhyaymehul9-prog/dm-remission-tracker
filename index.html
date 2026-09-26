@@ -266,6 +266,24 @@
           </div>
           <input type="hidden" id="f_resist" value="0">
 
+          <label>Plate model followed today <span style="font-weight:400;">(½ veg, ¼ protein, ¼ grain — Module 3)</span></label>
+          <div class="stress-scale" id="plateScale">
+            <button type="button" data-v="full">Most/all meals</button>
+            <button type="button" data-v="partial">Some meals</button>
+            <button type="button" data-v="none" class="sel">Not today</button>
+          </div>
+          <input type="hidden" id="f_plate" value="none">
+
+          <label for="f_swap">Today's food swap <span style="font-weight:400;">(one realistic swap — Module 3)</span></label>
+          <input type="text" id="f_swap" placeholder="e.g. rice → rice+dal mix, refined roti → millet roti">
+
+          <label>Wind-down routine done tonight <span style="font-weight:400;">(Module 5)</span></label>
+          <div class="stress-scale" id="windScale">
+            <button type="button" data-v="1">Yes</button>
+            <button type="button" data-v="0" class="sel">No</button>
+          </div>
+          <input type="hidden" id="f_wind" value="0">
+
           <label for="f_notes">Context notes <span style="font-weight:400;">(illness, travel, a hard week — anything unusual)</span></label>
           <textarea id="f_notes" placeholder="Optional, but this is what makes an unusual reading make sense later."></textarea>
 
@@ -422,6 +440,24 @@ document.querySelectorAll('#resistScale button').forEach(b=>{
   });
 });
 
+/* ---------- PLATE MODEL TOGGLE ---------- */
+document.querySelectorAll('#plateScale button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#plateScale button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    document.getElementById('f_plate').value = b.dataset.v;
+  });
+});
+
+/* ---------- WIND-DOWN TOGGLE ---------- */
+document.querySelectorAll('#windScale button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#windScale button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    document.getElementById('f_wind').value = b.dataset.v;
+  });
+});
+
 /* ---------- ENTRY FORM ---------- */
 document.getElementById('f_date').valueAsDate = new Date();
 
@@ -440,10 +476,16 @@ document.getElementById('entryForm').addEventListener('submit', e=>{
     stress: document.getElementById('f_stress').value ? Number(document.getElementById('f_stress').value) : null,
     walk: document.getElementById('f_walk').value || null,
     resistance: document.getElementById('f_resist').value === '1',
+    plate: document.getElementById('f_plate').value,
+    swap: document.getElementById('f_swap').value || '',
+    windDown: document.getElementById('f_wind').value === '1',
     notes: document.getElementById('f_notes').value || ''
   };
-  if(entry.fasting===null && entry.postMeal===null){
-    toast('Add at least a fasting or post-meal reading');
+  const hasAnything = entry.fasting!==null || entry.postMeal!==null || entry.weight!==null ||
+    entry.sleep!==null || entry.stress!==null || entry.walk!==null || entry.resistance ||
+    entry.plate!=='none' || entry.windDown || entry.notes;
+  if(!hasAnything){
+    toast('Log at least one thing for today — glucose is only needed 2-3x/week, but walk/plate/sleep can be logged daily');
     return;
   }
   store.entries.push(entry);
@@ -455,6 +497,12 @@ document.getElementById('entryForm').addEventListener('submit', e=>{
   document.querySelectorAll('#resistScale button').forEach(x=>x.classList.remove('sel'));
   document.querySelector('#resistScale button[data-v="0"]').classList.add('sel');
   document.getElementById('f_resist').value = '0';
+  document.querySelectorAll('#plateScale button').forEach(x=>x.classList.remove('sel'));
+  document.querySelector('#plateScale button[data-v="none"]').classList.add('sel');
+  document.getElementById('f_plate').value = 'none';
+  document.querySelectorAll('#windScale button').forEach(x=>x.classList.remove('sel'));
+  document.querySelector('#windScale button[data-v="0"]').classList.add('sel');
+  document.getElementById('f_wind').value = '0';
   toast('Entry saved');
   renderAll();
 });
@@ -503,8 +551,11 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
   const pVals = recent.filter(e=>e.postMeal!==null).map(e=>e.postMeal);
   const walkDays = recent.filter(e=>e.walk).length;
   const resistDays = recent.filter(e=>e.resistance).length;
+  const plateDays = recent.filter(e=>e.plate==='full').length;
+  const windDays = recent.filter(e=>e.windDown).length;
   const lastHba1c = store.hba1c[0];
   const firstHba1c = store.hba1c[store.hba1c.length-1];
+  const wk = programWeek();
 
   const rows = store.entries.slice(0,28).map(e=>`
     <tr>
@@ -516,6 +567,8 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
       <td>${e.stress ?? '—'}</td>
       <td>${e.walk ? 'Yes ('+e.walk+')' : '—'}</td>
       <td>${e.resistance ? 'Yes' : '—'}</td>
+      <td>${e.plate==='full'?'Most/all':e.plate==='partial'?'Some':'—'}</td>
+      <td>${e.windDown ? 'Yes' : '—'}</td>
       <td>${e.notes || ''}</td>
     </tr>`).join('');
 
@@ -535,7 +588,7 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
       @media print{ body{padding:8px;} }
     </style></head><body>
     <h1>Type 2 Diabetes Remission Protocol — Tracker Summary</h1>
-    <div class="meta">Generated ${fmtDate(new Date().toISOString().slice(0,10))} · Bring this to your doctor's appointment</div>
+    <div class="meta">Generated ${fmtDate(new Date().toISOString().slice(0,10))} · ${wk?'Program Week '+wk+' of 12 · ':''}Bring this to your doctor's appointment</div>
     <div class="stats">
       <div class="stat"><span>Latest HbA1c</span><b>${lastHba1c?lastHba1c.value+'% ('+fmtDate(lastHba1c.date)+')':'Not logged'}</b></div>
       <div class="stat"><span>Baseline HbA1c</span><b>${firstHba1c?firstHba1c.value+'% ('+fmtDate(firstHba1c.date)+')':'—'}</b></div>
@@ -543,9 +596,11 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
       <div class="stat"><span>Post-meal avg (28d)</span><b>${pVals.length?Math.round(avg(pVals))+' mg/dL':'—'}</b></div>
       <div class="stat"><span>Post-meal walks (28d)</span><b>${walkDays} day(s)</b></div>
       <div class="stat"><span>Resistance sessions (28d)</span><b>${resistDays}</b></div>
+      <div class="stat"><span>Plate model, most/all meals (28d)</span><b>${plateDays} day(s)</b></div>
+      <div class="stat"><span>Wind-down routine (28d)</span><b>${windDays} night(s)</b></div>
     </div>
     <h2>Entry Log (most recent ${Math.min(store.entries.length,28)})</h2>
-    <table><thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Weight</th><th>Sleep</th><th>Stress</th><th>Walk</th><th>Resistance</th><th>Notes</th></tr></thead>
+    <table><thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Weight</th><th>Sleep</th><th>Stress</th><th>Walk</th><th>Resistance</th><th>Plate model</th><th>Wind-down</th><th>Notes</th></tr></thead>
     <tbody>${rows || '<tr><td colspan="9">No entries yet.</td></tr>'}</tbody></table>
     </body></html>`);
   win.document.close();
@@ -593,6 +648,19 @@ document.getElementById('clearBtn').addEventListener('click', ()=>{
 /* ---------- RENDER: SNAPSHOT ---------- */
 function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
 
+function programWeek(){
+  if(!store.entries.length) return null;
+  const first = store.entries[store.entries.length-1].date;
+  const days = Math.floor((new Date() - new Date(first+'T00:00:00')) / 86400000);
+  return Math.min(12, Math.floor(days/7)+1);
+}
+function phaseTargets(week){
+  if(week===null) return null;
+  if(week<=4) return {label:'Foundation', walks: Math.min(3, week), resist: week>=4?1:0};
+  if(week<=8) return {label:'Momentum', walks:3, resist:2};
+  return {label:'Plateau & Retest', walks:3, resist:2};
+}
+
 function renderSnapshot(){
   const el = document.getElementById('snapshot');
   const lastHba1c = store.hba1c[0];
@@ -600,6 +668,8 @@ function renderSnapshot(){
   const recentPost = store.entries.filter(e=>e.postMeal!==null).slice(0,5).map(e=>e.postMeal);
   const fAvg = avg(recentFasting);
   const pAvg = avg(recentPost);
+  const wk = programWeek();
+  const phase = phaseTargets(wk);
 
   el.innerHTML = `
     <div class="cell">
@@ -616,8 +686,9 @@ function renderSnapshot(){
       <div class="value ${pAvg?'':'empty'}">${pAvg ? Math.round(pAvg)+' mg/dL' : '—'}</div>
     </div>
     <div class="cell">
-      <div class="label">Total Entries</div>
-      <div class="value">${store.entries.length}</div>
+      <div class="label">Program Week</div>
+      <div class="value ${wk?'':'empty'}">${wk ? 'Week '+wk+' of 12' : '—'}</div>
+      <div class="trend flat">${phase ? phase.label : 'Log your first entry to start'}</div>
     </div>
   `;
 }
@@ -635,12 +706,12 @@ function renderEntryTable(){
       <td>${e.fasting ?? '—'}</td>
       <td>${e.postMeal ?? '—'}${e.mealLabel ? ' ('+e.mealLabel+')' : ''}</td>
       <td>${e.stress ?? '—'}</td>
-      <td title="Post-meal walk / resistance training">${e.walk?'🚶':'—'} ${e.resistance?'💪':''}</td>
+      <td title="Walk / resistance / plate model / wind-down">${e.walk?'🚶':''}${e.resistance?'💪':''}${e.plate==='full'?'🍽️':''}${e.windDown?'🌙':''}${(!e.walk&&!e.resistance&&e.plate!=='full'&&!e.windDown)?'—':''}</td>
       <td><button class="ghost" data-del="${e.id}" style="padding:4px 9px;font-size:.78rem;">Delete</button></td>
     </tr>`).join('');
   wrap.innerHTML = `
     <table>
-      <thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Stress</th><th>Activity</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Fasting</th><th>Post-meal</th><th>Stress</th><th title="Walk / Resistance / Plate / Wind-down">Habits</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   wrap.querySelectorAll('[data-del]').forEach(btn=>{
@@ -759,13 +830,20 @@ function renderReview(){
   const highStressDays = thisWeek.filter(e=>e.stress!==null && e.stress>=4).length;
   const walkDays = thisWeek.filter(e=>e.walk).length;
   const resistDays = thisWeek.filter(e=>e.resistance).length;
+  const plateFullDays = thisWeek.filter(e=>e.plate==='full').length;
+  const windDownDays = thisWeek.filter(e=>e.windDown).length;
+  const wk = programWeek();
+  const phase = phaseTargets(wk);
 
   let flag = '';
   if(lowSleepDays>=2 || highStressDays>=2){
     flag += `<div class="flag">This week shows ${lowSleepDays>=2?lowSleepDays+' night(s) under 6 hours sleep':''}${lowSleepDays>=2 && highStressDays>=2?' and ':''}${highStressDays>=2?highStressDays+' day(s) of high stress':''}. Before reading too much into any unusual glucose numbers, check whether this context explains it — exactly the Module 5 connection.</div>`;
   }
-  if(thisWeek.length>=3 && walkDays<=1){
-    flag += `<div class="flag">Post-meal walks logged only ${walkDays} day(s) this week. This is the single highest-leverage habit in the course (Module 4) — if your post-meal readings ran high, this is the first thing to fix before anything else.</div>`;
+  if(phase && thisWeek.length>=3 && walkDays < phase.walks){
+    flag += `<div class="flag">${phase.label} phase (Week ${wk}) targets ${phase.walks} post-meal walk day(s)/week — you logged ${walkDays}. This is the single highest-leverage habit in the course (Module 4).</div>`;
+  }
+  if(phase && thisWeek.length>=3 && phase.resist>0 && resistDays < phase.resist){
+    flag += `<div class="flag">${phase.label} phase targets ${phase.resist}+ resistance session(s)/week — you logged ${resistDays}.</div>`;
   }
 
   document.getElementById('reviewBox').innerHTML = `
@@ -774,6 +852,8 @@ function renderReview(){
     <div class="review-line"><span>Entries logged this week</span><span>${thisWeek.length}</span></div>
     <div class="review-line"><span>Post-meal walks this week</span><span>${walkDays} day(s)</span></div>
     <div class="review-line"><span>Resistance training this week</span><span>${resistDays} session(s)</span></div>
+    <div class="review-line"><span>Plate model on most meals</span><span>${plateFullDays} day(s)</span></div>
+    <div class="review-line"><span>Wind-down routine done</span><span>${windDownDays} night(s)</span></div>
     ${flag}
   `;
 
