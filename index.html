@@ -75,7 +75,7 @@
   section.active{display:block;}
 
   .snapshot{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+    display:grid;grid-template-columns:repeat(6,1fr);gap:0;
     border:1px solid var(--paper-line);border-radius:var(--radius);
     margin-bottom:28px;background:#fff;
   }
@@ -312,6 +312,19 @@
       </div>
       <p class="footer-note">Not enough data yet? This chart fills in as you log entries — aim for 2–3 readings a week, rotating fasting and post-meal, exactly as covered in Module 6.</p>
     </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Weight &amp; BMI Trend</h2>
+        <div class="note">Last 8 weeks</div>
+      </div>
+      <svg class="chart" id="chartWeightSvg" viewBox="0 0 900 220" preserveAspectRatio="none"></svg>
+      <div class="chart-legend">
+        <span><i class="swatch" style="background:#155850;"></i> Weight</span>
+        <span><i class="swatch" style="background:#B9822F;border-top:2px dashed #B9822F;height:0;"></i> BMI</span>
+      </div>
+      <p class="footer-note" id="bmiNote"></p>
+    </div>
   </section>
 
   <!-- HBA1C -->
@@ -360,7 +373,18 @@
   <section id="data">
     <div class="panel" style="border-top:none;padding-top:0;">
       <div class="panel-head"><h2>Data & Backup</h2></div>
-      <p class="footer-note">Your data is stored only in this browser, on this device. It does not sync anywhere automatically. Export a backup regularly, especially before clearing your browser data or switching devices.</p>
+
+      <div class="row2" style="max-width:420px;align-items:flex-end;">
+        <div>
+          <label for="f_height">Your height (cm) <span style="font-weight:400;">— needed for BMI</span></label>
+          <input type="number" id="f_height" step="0.1" placeholder="e.g. 165">
+        </div>
+        <div>
+          <button class="ghost" id="saveHeight" style="margin-bottom:1px;">Save Height</button>
+        </div>
+      </div>
+
+      <p class="footer-note" style="margin-top:18px;">Your data is stored only in this browser, on this device. It does not sync anywhere automatically. Export a backup regularly, especially before clearing your browser data or switching devices.</p>
       <div class="data-actions">
         <button class="ghost" id="printBtn">Print Summary for Doctor</button>
         <button class="ghost" id="exportBtn">Export Backup (.json)</button>
@@ -384,9 +408,15 @@ const STORE_KEY = 't2d_tracker_v1';
 function loadStore(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
-    if(!raw) return {entries:[], hba1c:[], actions:[]};
-    return JSON.parse(raw);
-  }catch(e){ return {entries:[], hba1c:[], actions:[]}; }
+    if(!raw) return {entries:[], hba1c:[], actions:[], height:null};
+    const p = JSON.parse(raw);
+    return {entries:p.entries||[], hba1c:p.hba1c||[], actions:p.actions||[], height: p.height ?? null};
+  }catch(e){ return {entries:[], hba1c:[], actions:[], height:null}; }
+}
+function bmi(weightKg, heightCm){
+  if(!weightKg || !heightCm) return null;
+  const h = heightCm/100;
+  return weightKg / (h*h);
 }
 function saveStore(store){
   localStorage.setItem(STORE_KEY, JSON.stringify(store));
@@ -417,7 +447,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
     document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab==='trends') renderChart();
+    if(btn.dataset.tab==='trends'){ renderChart(); renderWeightChart(); }
     if(btn.dataset.tab==='review') renderReview();
   });
 });
@@ -555,6 +585,8 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
   const windDays = recent.filter(e=>e.windDown).length;
   const lastHba1c = store.hba1c[0];
   const firstHba1c = store.hba1c[store.hba1c.length-1];
+  const latestWeightEntry = store.entries.find(e=>e.weight!==null);
+  const latestBmiVal = (latestWeightEntry && store.height) ? bmi(latestWeightEntry.weight, store.height) : null;
   const wk = programWeek();
 
   const rows = store.entries.slice(0,28).map(e=>`
@@ -594,6 +626,8 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
       <div class="stat"><span>Baseline HbA1c</span><b>${firstHba1c?firstHba1c.value+'% ('+fmtDate(firstHba1c.date)+')':'—'}</b></div>
       <div class="stat"><span>Fasting avg (28d)</span><b>${fVals.length?Math.round(avg(fVals))+' mg/dL':'—'}</b></div>
       <div class="stat"><span>Post-meal avg (28d)</span><b>${pVals.length?Math.round(avg(pVals))+' mg/dL':'—'}</b></div>
+      <div class="stat"><span>Latest weight</span><b>${latestWeightEntry?latestWeightEntry.weight+' kg':'—'}</b></div>
+      <div class="stat"><span>Latest BMI</span><b>${latestBmiVal?latestBmiVal.toFixed(1):'—'}</b></div>
       <div class="stat"><span>Post-meal walks (28d)</span><b>${walkDays} day(s)</b></div>
       <div class="stat"><span>Resistance sessions (28d)</span><b>${resistDays}</b></div>
       <div class="stat"><span>Plate model, most/all meals (28d)</span><b>${plateDays} day(s)</b></div>
@@ -626,7 +660,7 @@ document.getElementById('importFile').addEventListener('change', e=>{
     try{
       const imported = JSON.parse(evt.target.result);
       if(!imported.entries || !imported.hba1c) throw new Error('bad format');
-      store = { entries: imported.entries||[], hba1c: imported.hba1c||[], actions: imported.actions||[] };
+      store = { entries: imported.entries||[], hba1c: imported.hba1c||[], actions: imported.actions||[], height: imported.height ?? null };
       sortStore();
       saveStore(store);
       toast('Backup restored');
@@ -638,11 +672,22 @@ document.getElementById('importFile').addEventListener('change', e=>{
 });
 document.getElementById('clearBtn').addEventListener('click', ()=>{
   if(confirm('This deletes all tracker data on this device permanently. Export a backup first if you want to keep it. Continue?')){
-    store = {entries:[], hba1c:[], actions:[]};
+    store = {entries:[], hba1c:[], actions:[], height:null};
     saveStore(store);
+    document.getElementById('f_height').value = '';
     toast('All data cleared');
     renderAll();
   }
+});
+
+/* ---------- HEIGHT / BMI ---------- */
+document.getElementById('f_height').value = store.height ?? '';
+document.getElementById('saveHeight').addEventListener('click', ()=>{
+  const h = document.getElementById('f_height').value;
+  store.height = h ? Number(h) : null;
+  saveStore(store);
+  toast(store.height ? 'Height saved' : 'Height cleared');
+  renderAll();
 });
 
 /* ---------- RENDER: SNAPSHOT ---------- */
@@ -670,6 +715,9 @@ function renderSnapshot(){
   const pAvg = avg(recentPost);
   const wk = programWeek();
   const phase = phaseTargets(wk);
+  const latestWeightEntry = store.entries.find(e=>e.weight!==null);
+  const latestWeight = latestWeightEntry ? latestWeightEntry.weight : null;
+  const latestBmi = bmi(latestWeight, store.height);
 
   el.innerHTML = `
     <div class="cell">
@@ -684,6 +732,15 @@ function renderSnapshot(){
     <div class="cell">
       <div class="label">Post-Meal Avg (last 5)</div>
       <div class="value ${pAvg?'':'empty'}">${pAvg ? Math.round(pAvg)+' mg/dL' : '—'}</div>
+    </div>
+    <div class="cell">
+      <div class="label">Weight</div>
+      <div class="value ${latestWeight?'':'empty'}">${latestWeight ? latestWeight+' kg' : '—'}</div>
+      <div class="trend flat">${latestWeightEntry ? fmtDate(latestWeightEntry.date) : ''}</div>
+    </div>
+    <div class="cell">
+      <div class="label">BMI</div>
+      <div class="value ${latestBmi?'':'empty'}">${latestBmi ? latestBmi.toFixed(1) : (store.height ? '—' : 'Add height')}</div>
     </div>
     <div class="cell">
       <div class="label">Program Week</div>
@@ -800,6 +857,58 @@ function renderChart(){
   `;
 }
 
+/* ---------- RENDER: WEIGHT & BMI CHART ---------- */
+function renderWeightChart(){
+  const svg = document.getElementById('chartWeightSvg');
+  const noteEl = document.getElementById('bmiNote');
+  const W=900,H=220,padL=10,padR=10,padT=20,padB=24;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-56);
+  const pts = store.entries.filter(e=> new Date(e.date) >= cutoff && e.weight!==null).slice().reverse();
+
+  if(pts.length < 2){
+    svg.innerHTML = `<text x="20" y="110" fill="#8a8477" font-size="14" font-family="IBM Plex Sans, sans-serif">Log at least two weight readings to see your trend line here.</text>`;
+    noteEl.textContent = store.height ? '' : 'Add your height in Data & Backup to see BMI alongside weight.';
+    return;
+  }
+
+  const weights = pts.map(p=>p.weight);
+  const wMin = Math.min(...weights), wMax = Math.max(...weights);
+  const wRange = (wMax-wMin) || 1;
+  const x = i => padL + (i/(pts.length-1)) * (W-padL-padR);
+  const yW = v => H-padB - ((v-wMin)/wRange) * (H-padT-padB);
+
+  let weightPath='';
+  pts.forEach((p,i)=>{
+    weightPath += `${i===0?'M':'L'}${x(i).toFixed(1)},${yW(p.weight).toFixed(1)} `;
+  });
+  const weightDots = pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${yW(p.weight).toFixed(1)}" r="3" fill="#155850"/>`).join('');
+
+  let bmiPath='', bmiDots='';
+  if(store.height){
+    const bmis = pts.map(p=>bmi(p.weight, store.height));
+    const bMin = Math.min(...bmis), bMax = Math.max(...bmis);
+    const bRange = (bMax-bMin) || 1;
+    const yB = v => H-padB - ((v-bMin)/bRange) * (H-padT-padB);
+    pts.forEach((p,i)=>{
+      const b = bmi(p.weight, store.height);
+      bmiPath += `${i===0?'M':'L'}${x(i).toFixed(1)},${yB(b).toFixed(1)} `;
+    });
+    bmiDots = pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${yB(bmi(p.weight,store.height)).toFixed(1)}" r="3" fill="#B9822F"/>`).join('');
+  }
+
+  svg.innerHTML = `
+    <path d="${weightPath}" fill="none" stroke="#155850" stroke-width="2"/>
+    ${weightDots}
+    ${store.height ? `<path d="${bmiPath}" fill="none" stroke="#B9822F" stroke-width="2" stroke-dasharray="5,3"/>${bmiDots}` : ''}
+  `;
+
+  const latest = pts[pts.length-1];
+  const latestBmi = store.height ? bmi(latest.weight, store.height) : null;
+  noteEl.textContent = store.height
+    ? `Latest: ${latest.weight} kg · BMI ${latestBmi.toFixed(1)}. Weight and BMI lines are each scaled to their own range here, to show direction — not a shared axis.`
+    : 'Add your height in Data & Backup to see BMI alongside weight.';
+}
+
 /* ---------- RENDER: WEEKLY REVIEW ---------- */
 function weekBucket(daysAgoStart, daysAgoEnd){
   const now = new Date();
@@ -825,6 +934,12 @@ function renderReview(){
   const pLast = avg(lastWeek.filter(e=>e.postMeal).map(e=>e.postMeal));
   const fTrend = trendArrow(fThis, fLast);
   const pTrend = trendArrow(pThis, pLast);
+  const wThis = avg(thisWeek.filter(e=>e.weight!==null).map(e=>e.weight));
+  const wLast = avg(lastWeek.filter(e=>e.weight!==null).map(e=>e.weight));
+  const wTrend = trendArrow(wThis, wLast);
+  const bmiThis = store.height ? bmi(wThis, store.height) : null;
+  const bmiLast = store.height ? bmi(wLast, store.height) : null;
+  const bmiTrend = trendArrow(bmiThis, bmiLast);
 
   const lowSleepDays = thisWeek.filter(e=>e.sleep!==null && e.sleep<6).length;
   const highStressDays = thisWeek.filter(e=>e.stress!==null && e.stress>=4).length;
@@ -849,6 +964,8 @@ function renderReview(){
   document.getElementById('reviewBox').innerHTML = `
     <div class="review-line"><span>Fasting glucose, this week vs last</span><span class="trend ${fTrend.cls}">${fThis?Math.round(fThis)+' mg/dL — ':''}${fTrend.text}</span></div>
     <div class="review-line"><span>Post-meal glucose, this week vs last</span><span class="trend ${pTrend.cls}">${pThis?Math.round(pThis)+' mg/dL — ':''}${pTrend.text}</span></div>
+    <div class="review-line"><span>Weight, this week vs last</span><span class="trend ${wTrend.cls}">${wThis?wThis.toFixed(1)+' kg — ':''}${wTrend.text}</span></div>
+    ${store.height ? `<div class="review-line"><span>BMI, this week vs last</span><span class="trend ${bmiTrend.cls}">${bmiThis?bmiThis.toFixed(1)+' — ':''}${bmiTrend.text}</span></div>` : ''}
     <div class="review-line"><span>Entries logged this week</span><span>${thisWeek.length}</span></div>
     <div class="review-line"><span>Post-meal walks this week</span><span>${walkDays} day(s)</span></div>
     <div class="review-line"><span>Resistance training this week</span><span>${resistDays} session(s)</span></div>
@@ -872,6 +989,7 @@ function renderAll(){
   renderEntryTable();
   renderHba1cTable();
   renderChart();
+  renderWeightChart();
   renderReview();
 }
 renderAll();
