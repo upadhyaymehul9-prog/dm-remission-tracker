@@ -163,9 +163,22 @@
   .install-banner p{margin:0;font-size:.88rem;}
   .install-banner button.primary{margin-top:0;padding:8px 16px;font-size:.85rem;}
   .install-banner .dismiss{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:1.1rem;padding:0 4px;}
+
+  .bp-alert{display:none;background:var(--red);color:#fff;}
+  .bp-alert.show{display:block;}
+  .bp-alert .wrap{display:flex;justify-content:space-between;align-items:center;padding:14px 0;gap:14px;flex-wrap:wrap;}
+  .bp-alert p{margin:0;font-size:.95rem;font-weight:500;line-height:1.4;}
+  .bp-alert button{background:#fff;color:var(--red);border:none;padding:9px 18px;border-radius:var(--radius);font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem;white-space:nowrap;}
 </style>
 </head>
 <body>
+
+<div class="bp-alert" id="bpAlertBanner">
+  <div class="wrap">
+    <p id="bpAlertText"></p>
+    <button id="bpAlertDismiss">I understand</button>
+  </div>
+</div>
 
 <header class="top">
   <div class="wrap">
@@ -1096,6 +1109,25 @@ function renderReview(){
   }
 }
 
+/* ---------- BP SAFETY ALERT ---------- */
+function checkBPAlert(){
+  const banner = document.getElementById('bpAlertBanner');
+  const textEl = document.getElementById('bpAlertText');
+  const latestBp = store.entries.find(e=>e.systolic!==null && e.diastolic!==null);
+  if(latestBp){
+    const cat = bpCategory(latestBp.systolic, latestBp.diastolic);
+    if(cat.label.indexOf('Crisis')!==-1){
+      textEl.textContent = `⚠ Your latest reading — ${latestBp.systolic}/${latestBp.diastolic} mmHg on ${fmtDate(latestBp.date)} — is in the Hypertensive Crisis range. Contact your doctor or emergency services immediately (India: dial 108). Do not wait for your next scheduled appointment.`;
+      banner.classList.add('show');
+      return;
+    }
+  }
+  banner.classList.remove('show');
+}
+document.getElementById('bpAlertDismiss').addEventListener('click', ()=>{
+  document.getElementById('bpAlertBanner').classList.remove('show');
+});
+
 function renderAll(){
   renderSnapshot();
   renderEntryTable();
@@ -1104,6 +1136,7 @@ function renderAll(){
   renderWeightChart();
   renderBPChart();
   renderReview();
+  checkBPAlert();
 }
 renderAll();
 
