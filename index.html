@@ -203,6 +203,15 @@
 
   <!-- LOG ENTRY -->
   <section id="log" class="active">
+    <div class="row2" id="heightRow" style="max-width:420px;align-items:flex-end;margin-bottom:24px;">
+      <div>
+        <label for="f_height">Your height (cm) <span style="font-weight:400;">— one-time, needed for BMI</span></label>
+        <input type="number" id="f_height" step="0.1" placeholder="e.g. 165">
+      </div>
+      <div>
+        <button class="primary" id="saveHeight" style="margin-top:0;">Save Height</button>
+      </div>
+    </div>
     <div class="grid2">
       <div class="panel" style="border-top:none;padding-top:0;">
         <div class="panel-head"><h2>Today's Entry</h2></div>
@@ -374,17 +383,7 @@
     <div class="panel" style="border-top:none;padding-top:0;">
       <div class="panel-head"><h2>Data & Backup</h2></div>
 
-      <div class="row2" style="max-width:420px;align-items:flex-end;">
-        <div>
-          <label for="f_height">Your height (cm) <span style="font-weight:400;">— needed for BMI</span></label>
-          <input type="number" id="f_height" step="0.1" placeholder="e.g. 165">
-        </div>
-        <div>
-          <button class="ghost" id="saveHeight" style="margin-bottom:1px;">Save Height</button>
-        </div>
-      </div>
-
-      <p class="footer-note" style="margin-top:18px;">Your data is stored only in this browser, on this device. It does not sync anywhere automatically. Export a backup regularly, especially before clearing your browser data or switching devices.</p>
+      <p class="footer-note">Your data is stored only in this browser, on this device. It does not sync anywhere automatically. Export a backup regularly, especially before clearing your browser data or switching devices.</p>
       <div class="data-actions">
         <button class="ghost" id="printBtn">Print Summary for Doctor</button>
         <button class="ghost" id="exportBtn">Export Backup (.json)</button>
@@ -867,7 +866,7 @@ function renderWeightChart(){
 
   if(pts.length < 2){
     svg.innerHTML = `<text x="20" y="110" fill="#8a8477" font-size="14" font-family="IBM Plex Sans, sans-serif">Log at least two weight readings to see your trend line here.</text>`;
-    noteEl.textContent = store.height ? '' : 'Add your height in Data & Backup to see BMI alongside weight.';
+    noteEl.textContent = store.height ? '' : 'Add your height at the top of the Log Entry tab to see BMI alongside weight.';
     return;
   }
 
@@ -906,7 +905,7 @@ function renderWeightChart(){
   const latestBmi = store.height ? bmi(latest.weight, store.height) : null;
   noteEl.textContent = store.height
     ? `Latest: ${latest.weight} kg · BMI ${latestBmi.toFixed(1)}. Weight and BMI lines are each scaled to their own range here, to show direction — not a shared axis.`
-    : 'Add your height in Data & Backup to see BMI alongside weight.';
+    : 'Add your height at the top of the Log Entry tab to see BMI alongside weight.';
 }
 
 /* ---------- RENDER: WEEKLY REVIEW ---------- */
