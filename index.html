@@ -212,6 +212,7 @@
         <button class="primary" id="saveHeight" style="margin-top:0;">Save Height</button>
       </div>
     </div>
+    <p class="footer-note" style="margin:-16px 0 24px;">BMI ranges used here (Asian cut-offs, standard for Indian patients — risk rises at a lower BMI than Western charts suggest): <strong style="color:var(--gold-600);">Underweight</strong> &lt;18.5 · <strong style="color:var(--green);">Normal</strong> 18.5–22.9 · <strong style="color:var(--gold-600);">Overweight</strong> 23–24.9 · <strong style="color:var(--red);">Obese</strong> 25+.</p>
     <div class="grid2">
       <div class="panel" style="border-top:none;padding-top:0;">
         <div class="panel-head"><h2>Today's Entry</h2></div>
@@ -416,6 +417,15 @@ function bmi(weightKg, heightCm){
   if(!weightKg || !heightCm) return null;
   const h = heightCm/100;
   return weightKg / (h*h);
+}
+/* Asian/Indian BMI cut-offs (WHO Asia-Pacific) — lower than the generic WHO ranges,
+   since metabolic/diabetes risk rises at a lower BMI in Asian populations. */
+function bmiCategory(v){
+  if(v===null || v===undefined) return null;
+  if(v<18.5) return {label:'Underweight', color:'var(--gold-600)'};
+  if(v<23)   return {label:'Normal', color:'var(--green)'};
+  if(v<25)   return {label:'Overweight', color:'var(--gold-600)'};
+  return {label:'Obese', color:'var(--red)'};
 }
 function saveStore(store){
   localStorage.setItem(STORE_KEY, JSON.stringify(store));
@@ -626,7 +636,7 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
       <div class="stat"><span>Fasting avg (28d)</span><b>${fVals.length?Math.round(avg(fVals))+' mg/dL':'—'}</b></div>
       <div class="stat"><span>Post-meal avg (28d)</span><b>${pVals.length?Math.round(avg(pVals))+' mg/dL':'—'}</b></div>
       <div class="stat"><span>Latest weight</span><b>${latestWeightEntry?latestWeightEntry.weight+' kg':'—'}</b></div>
-      <div class="stat"><span>Latest BMI</span><b>${latestBmiVal?latestBmiVal.toFixed(1):'—'}</b></div>
+      <div class="stat"><span>Latest BMI</span><b>${latestBmiVal?latestBmiVal.toFixed(1)+' ('+bmiCategory(latestBmiVal).label+')':'—'}</b></div>
       <div class="stat"><span>Post-meal walks (28d)</span><b>${walkDays} day(s)</b></div>
       <div class="stat"><span>Resistance sessions (28d)</span><b>${resistDays}</b></div>
       <div class="stat"><span>Plate model, most/all meals (28d)</span><b>${plateDays} day(s)</b></div>
@@ -717,6 +727,7 @@ function renderSnapshot(){
   const latestWeightEntry = store.entries.find(e=>e.weight!==null);
   const latestWeight = latestWeightEntry ? latestWeightEntry.weight : null;
   const latestBmi = bmi(latestWeight, store.height);
+  const latestBmiCat = bmiCategory(latestBmi);
 
   el.innerHTML = `
     <div class="cell">
@@ -740,6 +751,7 @@ function renderSnapshot(){
     <div class="cell">
       <div class="label">BMI</div>
       <div class="value ${latestBmi?'':'empty'}">${latestBmi ? latestBmi.toFixed(1) : (store.height ? '—' : 'Add height')}</div>
+      <div class="trend flat" style="${latestBmiCat?('color:'+latestBmiCat.color+';font-weight:600;'):''}">${latestBmiCat ? latestBmiCat.label : ''}</div>
     </div>
     <div class="cell">
       <div class="label">Program Week</div>
@@ -903,8 +915,9 @@ function renderWeightChart(){
 
   const latest = pts[pts.length-1];
   const latestBmi = store.height ? bmi(latest.weight, store.height) : null;
+  const latestCat = bmiCategory(latestBmi);
   noteEl.textContent = store.height
-    ? `Latest: ${latest.weight} kg · BMI ${latestBmi.toFixed(1)}. Weight and BMI lines are each scaled to their own range here, to show direction — not a shared axis.`
+    ? `Latest: ${latest.weight} kg · BMI ${latestBmi.toFixed(1)} (${latestCat.label}). Weight and BMI lines are each scaled to their own range here, to show direction — not a shared axis.`
     : 'Add your height at the top of the Log Entry tab to see BMI alongside weight.';
 }
 
